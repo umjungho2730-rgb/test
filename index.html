@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPI 대시보드 - 인증 및 외부시험</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <header class="header">
+            <div class="header-content">
+                <h1>📊 KPI 대시보드</h1>
+                <p>인증 및 외부시험 통계</p>
+            </div>
+        </header>
+
+        <!-- 메인 컨텐츠 -->
+        <main class="main-content">
+            <!-- 상단 통계 카드 -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-info">
+                        <h3>전체 합격자</h3>
+                        <p class="stat-value" id="totalPassed">-</p>
+                        <span class="stat-unit">명</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <h3>합격률</h3>
+                        <p class="stat-value" id="passRate">-</p>
+                        <span class="stat-unit">%</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-info">
+                        <h3>최고 성적</h3>
+                        <p class="stat-value" id="maxScore">-</p>
+                        <span class="stat-unit">점</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-info">
+                        <h3>평균 점수</h3>
+                        <p class="stat-value" id="avgScore">-</p>
+                        <span class="stat-unit">점</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 차트 섹션 -->
+            <section class="charts-section">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h2>월별 합격자 현황</h2>
+                    </div>
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h2>구분별 현황</h2>
+                    </div>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </section>
+
+            <!-- 데이터 테이블 -->
+            <section class="table-section">
+                <div class="table-header">
+                    <h2>📋 상세 데이터</h2>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>월</th>
+                                <th>시험자</th>
+                                <th>합격자</th>
+                                <th>불합격자</th>
+                                <th>합격률</th>
+                                <th>평균점수</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <!-- 푸터 -->
+        <footer class="footer">
+            <p>© 2026 KPI Dashboard | Last Updated: <span id="lastUpdate">-</span></p>
+        </footer>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
