@@ -1,108 +1,497 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KPI 대시보드 - 인증 및 외부시험</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>인증 / 외부시험 KPI 대시보드</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/static/pretendard.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #FAFAF7;
+    --surface: #FFFFFF;
+    --surface-soft: #F4F3EE;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.16);
+    --text: #1A1A1A;
+    --text-2: #5F5E5A;
+    --text-3: #888780;
+    --green: #15803D; --green-bg: #DCFCE7;
+    --amber: #B45309; --amber-bg: #FEF3C7;
+    --blue: #1E40AF;  --blue-bg: #DBEAFE;
+    --red: #B91C1C;   --red-bg: #FEE2E2;
+    --purple: #6B21A8;--purple-bg: #F3E8FF;
+    --gray: #525252;  --gray-bg: #F4F4F4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0F0F0E;
+      --surface: #1A1A18;
+      --surface-soft: #232320;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.18);
+      --text: #F5F5F2;
+      --text-2: #A3A29C;
+      --text-3: #6B6A65;
+      --green: #4ADE80; --green-bg: rgba(74, 222, 128, 0.12);
+      --amber: #FBBF24; --amber-bg: rgba(251, 191, 36, 0.12);
+      --blue: #93C5FD;  --blue-bg: rgba(147, 197, 253, 0.12);
+      --red: #F87171;   --red-bg: rgba(248, 113, 113, 0.12);
+      --purple: #C084FC;--purple-bg: rgba(192, 132, 252, 0.12);
+      --gray: #A3A3A3;  --gray-bg: rgba(163, 163, 163, 0.12);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-feature-settings: 'tnum' 1, 'cv11' 1;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .sub { font-size: 13px; color: var(--text-2); margin-top: 4px; }
+  .updated { font-size: 12px; color: var(--text-3); }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 24px; }
+  .kpi { background: var(--surface); border-radius: 12px; padding: 18px 20px; border: 0.5px solid var(--border); }
+  .kpi-label { font-size: 12px; color: var(--text-2); margin-bottom: 8px; font-weight: 500; }
+  .kpi-value { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+  .kpi-unit { font-size: 13px; color: var(--text-2); font-weight: 400; margin-left: 2px; }
+  .kpi-sub { font-size: 11px; color: var(--text-3); margin-top: 6px; min-height: 14px; }
+  .kpi.warn .kpi-value { color: var(--red); }
+
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .card { background: var(--surface); border-radius: 12px; padding: 20px; border: 0.5px solid var(--border); }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; }
+  .chart-box { position: relative; height: 220px; }
+
+  .table-card { background: var(--surface); border-radius: 12px; padding: 20px; border: 0.5px solid var(--border); }
+  .table-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { background: var(--surface-soft); border: 0.5px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 12px; color: var(--text-2); cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .chip:hover { border-color: var(--border-strong); }
+  .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 800px; }
+  th { text-align: left; font-weight: 500; color: var(--text-2); padding: 10px 8px; font-size: 12px; border-bottom: 0.5px solid var(--border); white-space: nowrap; }
+  td { padding: 12px 8px; border-bottom: 0.5px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.dim { color: var(--text-2); }
+  .empty { text-align: center; padding: 40px; color: var(--text-3); font-size: 13px; }
+
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 500; }
+  .b-pred  { background: var(--blue-bg);   color: var(--blue); }
+  .b-prog  { background: var(--amber-bg);  color: var(--amber); }
+  .b-done  { background: var(--green-bg);  color: var(--green); }
+  .b-supp  { background: var(--purple-bg); color: var(--purple); }
+  .b-retry { background: var(--gray-bg);   color: var(--gray); }
+  .b-late  { background: var(--red-bg);    color: var(--red); }
+  .b-pass  { background: var(--green-bg);  color: var(--green); }
+  .b-fail  { background: var(--red-bg);    color: var(--red); }
+
+  @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 768px) {
+    .wrap { padding: 24px 16px 48px; }
+    h1 { font-size: 20px; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .kpi { padding: 14px 16px; }
+    .kpi-value { font-size: 22px; }
+    .chart-grid { grid-template-columns: 1fr; }
+    .chart-box { height: 200px; }
+  }
+</style>
 </head>
 <body>
-    <div class="container">
-        <!-- 헤더 -->
-        <header class="header">
-            <div class="header-content">
-                <h1>📊 KPI 대시보드</h1>
-                <p>인증 및 외부시험 통계</p>
-            </div>
-        </header>
+<div class="wrap">
 
-        <!-- 메인 컨텐츠 -->
-        <main class="main-content">
-            <!-- 상단 통계 카드 -->
-            <section class="stats-section">
-                <div class="stat-card">
-                    <div class="stat-icon">📈</div>
-                    <div class="stat-info">
-                        <h3>전체 합격자</h3>
-                        <p class="stat-value" id="totalPassed">-</p>
-                        <span class="stat-unit">명</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">✅</div>
-                    <div class="stat-info">
-                        <h3>합격률</h3>
-                        <p class="stat-value" id="passRate">-</p>
-                        <span class="stat-unit">%</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🏆</div>
-                    <div class="stat-info">
-                        <h3>최고 성적</h3>
-                        <p class="stat-value" id="maxScore">-</p>
-                        <span class="stat-unit">점</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">📊</div>
-                    <div class="stat-info">
-                        <h3>평균 점수</h3>
-                        <p class="stat-value" id="avgScore">-</p>
-                        <span class="stat-unit">점</span>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 차트 섹션 -->
-            <section class="charts-section">
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <h2>월별 합격자 현황</h2>
-                    </div>
-                    <canvas id="monthlyChart"></canvas>
-                </div>
-
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <h2>구분별 현황</h2>
-                    </div>
-                    <canvas id="categoryChart"></canvas>
-                </div>
-            </section>
-
-            <!-- 데이터 테이블 -->
-            <section class="table-section">
-                <div class="table-header">
-                    <h2>📋 상세 데이터</h2>
-                </div>
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>월</th>
-                                <th>시험자</th>
-                                <th>합격자</th>
-                                <th>불합격자</th>
-                                <th>합격률</th>
-                                <th>평균점수</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dataTableBody">
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
-
-        <!-- 푸터 -->
-        <footer class="footer">
-            <p>© 2026 KPI Dashboard | Last Updated: <span id="lastUpdate">-</span></p>
-        </footer>
+  <header>
+    <div>
+      <h1>인증 / 외부시험 KPI 대시보드</h1>
+      <p class="sub">관리대장 요약 · 정적 버전</p>
     </div>
+    <span class="updated" id="updated"></span>
+  </header>
 
-    <script src="data.js"></script>
-    <script src="script.js"></script>
+  <section class="kpi-grid" aria-label="핵심 지표">
+    <div class="kpi"><p class="kpi-label">총 건수</p><p class="kpi-value" id="kpi-total">—</p><p class="kpi-sub">전체 등록 건</p></div>
+    <div class="kpi"><p class="kpi-label">예정</p><p class="kpi-value" id="kpi-pred">—</p><p class="kpi-sub">시작 전</p></div>
+    <div class="kpi"><p class="kpi-label">진행중</p><p class="kpi-value" id="kpi-prog">—</p><p class="kpi-sub" id="kpi-prog-sub">&nbsp;</p></div>
+    <div class="kpi"><p class="kpi-label">완료</p><p class="kpi-value" id="kpi-done">—</p><p class="kpi-sub" id="kpi-done-sub">&nbsp;</p></div>
+    <div class="kpi warn"><p class="kpi-label">지연</p><p class="kpi-value" id="kpi-late">—</p><p class="kpi-sub" id="kpi-late-sub">&nbsp;</p></div>
+    <div class="kpi"><p class="kpi-label">총 비용 (원화환산)</p><p class="kpi-value" id="kpi-cost">—</p><p class="kpi-sub" id="kpi-cost-sub">&nbsp;</p></div>
+  </section>
+
+  <section class="chart-grid">
+    <div class="card"><p class="card-title">진행상태별 건수</p><div class="chart-box"><canvas id="c-status"></canvas></div></div>
+    <div class="card"><p class="card-title">시험결과별 건수</p><div class="chart-box"><canvas id="c-result"></canvas></div></div>
+    <div class="card"><p class="card-title">기관별 실제비용 (원화환산)</p><div class="chart-box"><canvas id="c-agency"></canvas></div></div>
+    <div class="card"><p class="card-title">월별 완료 건수</p><div class="chart-box"><canvas id="c-month"></canvas></div></div>
+  </section>
+
+  <section class="table-card">
+    <div class="table-head">
+      <p class="card-title" style="margin-bottom: 0;">관리대장</p>
+      <div class="filters" id="filters" role="tablist" aria-label="상태 필터">
+        <button class="chip active" data-filter="ALL">전체</button>
+        <button class="chip" data-filter="예정">예정</button>
+        <button class="chip" data-filter="진행중">진행중</button>
+        <button class="chip" data-filter="완료">완료</button>
+        <button class="chip" data-filter="LATE">지연</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 14%">프로젝트</th>
+            <th style="width: 14%">모델</th>
+            <th style="width: 14%">인증/시험</th>
+            <th style="width: 12%">기관</th>
+            <th style="width: 8%">상태</th>
+            <th style="width: 7%">결과</th>
+            <th style="width: 10%">완료예정일</th>
+            <th style="width: 8%; text-align: right;">소요(일)</th>
+            <th style="width: 13%; text-align: right;">비용(원)</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ============================================================================
+//  데이터 — 새 항목을 추가하려면 이 배열에 객체를 하나 더 넣으세요.
+//  완료일/시험결과는 아직 없으면 빈 문자열 '' 로 두면 됩니다.
+//  통화가 KRW면 환율은 1, 외화면 1단위당 원화 (USD 1350, EUR 1450 등).
+// ============================================================================
+
+const LAST_UPDATED = '2026-05-07';
+
+const RECORDS = [
+  {
+    프로젝트명: '가습기',
+    모델명: 'HGSSP-300SW',
+    '인증/시험 종류': 'KC 안전',
+    인증기관: 'KTL',
+    진행상태: '진행중',
+    긴급여부: '일반',
+    시작일: '2026-04-03',
+    완료예정일: '2026-04-20',
+    완료일: '',
+    시험결과: '',
+    실제비용: 3000000,
+    통화: 'KRW',
+    환율: 1,
+  },
+  {
+    프로젝트명: '블렌더',
+    모델명: 'MBL-100',
+    '인증/시험 종류': 'CE EMC',
+    인증기관: 'SGS',
+    진행상태: '예정',
+    긴급여부: '긴급',
+    시작일: '',
+    완료예정일: '2026-04-25',
+    완료일: '',
+    시험결과: '',
+    실제비용: 5000,
+    통화: 'USD',
+    환율: 1350,
+  },
+  {
+    프로젝트명: '펌프',
+    모델명: 'PUMP-200',
+    '인증/시험 종류': 'CE Safety',
+    인증기관: 'TÜV Rheinland',
+    진행상태: '완료',
+    긴급여부: '일반',
+    시작일: '2026-03-03',
+    완료예정일: '2026-03-20',
+    완료일: '2026-03-18',
+    시험결과: '합격',
+    실제비용: 7200,
+    통화: 'EUR',
+    환율: 1450,
+  },
+];
+
+// ============================================================================
+//  로직 — 아래는 수정할 필요 없음
+// ============================================================================
+
+const STATUSES = ['예정', '진행중', '완료', '보완', '재시험'];
+const RESULTS  = ['합격', '불합격', '보완요청'];
+
+const fmtNum  = (n) => Number(n || 0).toLocaleString('ko-KR');
+const fmtCost = (n) => {
+  const v = Number(n || 0);
+  if (v >= 100000000) return (v / 100000000).toFixed(1) + '억';
+  if (v >= 10000)     return (v / 10000).toFixed(0) + '만';
+  return fmtNum(v);
+};
+const parseDate = (s) => {
+  if (!s) return null;
+  const d = new Date(String(s).trim());
+  return isNaN(d) ? null : d;
+};
+const today = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+
+function isLate(r) {
+  const due = parseDate(r['완료예정일']);
+  if (!due) return false;
+  if ((r['진행상태'] || '').trim() === '완료') {
+    const done = parseDate(r['완료일']);
+    return done ? done > due : false;
+  }
+  return today() > due;
+}
+function durationDays(r) {
+  const start = parseDate(r['시작일']);
+  if (!start) return null;
+  const end = parseDate(r['완료일']) || today();
+  const days = Math.round((end - start) / 86400000);
+  return days >= 0 ? days : null;
+}
+function krwAmount(r) {
+  const cost = Number(r['실제비용']) || 0;
+  const rate = Number(r['환율']) || 1;
+  return cost * rate;
+}
+
+function computeKPI(rows) {
+  const byStatus = Object.fromEntries(STATUSES.map(s => [s, 0]));
+  const byResult = Object.fromEntries(RESULTS.map(r => [r, 0]));
+  const byAgency = {};
+  const byMonth = {};
+  let lateCount = 0, totalCost = 0, totalDur = 0, durN = 0;
+
+  rows.forEach(r => {
+    const s = (r['진행상태'] || '').trim();
+    if (byStatus[s] !== undefined) byStatus[s]++;
+    const res = (r['시험결과'] || '').trim();
+    if (byResult[res] !== undefined) byResult[res]++;
+    if (isLate(r)) lateCount++;
+    const krw = krwAmount(r);
+    totalCost += krw;
+    const ag = (r['인증기관'] || '미지정').trim();
+    if (krw > 0) byAgency[ag] = (byAgency[ag] || 0) + krw;
+    if (s === '완료') {
+      const done = parseDate(r['완료일']);
+      if (done) {
+        const key = done.getFullYear() + '-' + String(done.getMonth() + 1).padStart(2, '0');
+        byMonth[key] = (byMonth[key] || 0) + 1;
+      }
+      const dur = durationDays(r);
+      if (dur !== null) { totalDur += dur; durN++; }
+    }
+  });
+
+  return {
+    total: rows.length,
+    byStatus, byResult, byAgency, byMonth,
+    lateCount, totalCost,
+    avgDuration: durN > 0 ? totalDur / durN : 0,
+  };
+}
+
+// 차트 색상 (라이트/다크 공용)
+function chartColors() {
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  return {
+    text: dark ? '#A3A29C' : '#5F5E5A',
+    grid: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+    status: { '예정':'#3B82F6', '진행중':'#F59E0B', '완료':'#10B981', '보완':'#A855F7', '재시험':'#737373' },
+    result: { '합격':'#10B981', '불합격':'#EF4444', '보완요청':'#F59E0B' },
+    teal: '#14B8A6',
+    purple: '#8B5CF6',
+  };
+}
+
+let charts = {};
+function destroyCharts() { Object.values(charts).forEach(c => c && c.destroy()); charts = {}; }
+
+function renderKPI(k) {
+  document.getElementById('kpi-total').textContent = k.total;
+  document.getElementById('kpi-pred').textContent  = k.byStatus['예정'];
+  document.getElementById('kpi-prog').textContent  = k.byStatus['진행중'];
+  document.getElementById('kpi-done').textContent  = k.byStatus['완료'];
+  document.getElementById('kpi-late').textContent  = k.lateCount;
+  document.getElementById('kpi-cost').innerHTML    = `₩${fmtCost(k.totalCost)}<span class="kpi-unit">원</span>`;
+
+  const extraProg = k.byStatus['보완'] + k.byStatus['재시험'];
+  document.getElementById('kpi-prog-sub').textContent = extraProg > 0 ? `+ 보완 ${k.byStatus['보완']} · 재시험 ${k.byStatus['재시험']}` : '\u00a0';
+  document.getElementById('kpi-done-sub').textContent = k.byResult['합격'] > 0 || k.byResult['불합격'] > 0 ? `합격 ${k.byResult['합격']} · 불합격 ${k.byResult['불합격']}` : '\u00a0';
+  document.getElementById('kpi-late-sub').textContent = k.lateCount > 0 ? '확인 필요' : '없음';
+  document.getElementById('kpi-cost-sub').textContent = k.avgDuration > 0 ? `평균 소요 ${k.avgDuration.toFixed(1)}일` : '\u00a0';
+}
+
+function renderCharts(k) {
+  destroyCharts();
+  const C = chartColors();
+  const baseAxis = {
+    y: { beginAtZero: true, ticks: { color: C.text, font: { size: 11 }, precision: 0 }, grid: { color: C.grid, drawTicks: false } },
+    x: { ticks: { color: C.text, font: { size: 11 } }, grid: { display: false } },
+  };
+  const baseOpts = (extra = {}) => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { padding: 10, displayColors: false, backgroundColor: 'rgba(0,0,0,0.85)' } },
+    scales: baseAxis,
+    ...extra,
+  });
+
+  charts.status = new Chart(document.getElementById('c-status'), {
+    type: 'bar',
+    data: {
+      labels: STATUSES,
+      datasets: [{
+        data: STATUSES.map(s => k.byStatus[s]),
+        backgroundColor: STATUSES.map(s => C.status[s]),
+        borderRadius: 6, maxBarThickness: 56,
+      }],
+    },
+    options: baseOpts(),
+  });
+
+  const resultData = RESULTS.map(r => k.byResult[r]);
+  const hasResults = resultData.some(v => v > 0);
+  charts.result = new Chart(document.getElementById('c-result'), {
+    type: 'doughnut',
+    data: {
+      labels: RESULTS,
+      datasets: [{
+        data: hasResults ? resultData : [1],
+        backgroundColor: hasResults ? RESULTS.map(r => C.result[r]) : ['#E5E5E5'],
+        borderWidth: 0,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '64%',
+      plugins: {
+        legend: { display: hasResults, position: 'bottom', labels: { color: C.text, font: { size: 12 }, boxWidth: 10, boxHeight: 10, padding: 14, usePointStyle: true } },
+        tooltip: { enabled: hasResults, padding: 10, displayColors: false, backgroundColor: 'rgba(0,0,0,0.85)' },
+      },
+    },
+  });
+
+  const agencyEntries = Object.entries(k.byAgency).sort((a,b) => b[1] - a[1]).slice(0, 7);
+  charts.agency = new Chart(document.getElementById('c-agency'), {
+    type: 'bar',
+    data: {
+      labels: agencyEntries.map(e => e[0]),
+      datasets: [{ data: agencyEntries.map(e => e[1]), backgroundColor: C.teal, borderRadius: 6, maxBarThickness: 36 }],
+    },
+    options: baseOpts({
+      indexAxis: 'y',
+      scales: {
+        x: { beginAtZero: true, ticks: { color: C.text, font: { size: 10 }, callback: v => '₩' + fmtCost(v) }, grid: { color: C.grid, drawTicks: false } },
+        y: { ticks: { color: C.text, font: { size: 11 } }, grid: { display: false } },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { padding: 10, displayColors: false, backgroundColor: 'rgba(0,0,0,0.85)', callbacks: { label: ctx => '₩' + fmtNum(ctx.parsed.x) } },
+      },
+    }),
+  });
+
+  // 월별 완료 — 데이터가 있는 달이 포함되도록 최근 6개월 표시
+  const sortedMonths = Object.keys(k.byMonth).sort();
+  const months = [];
+  const now = new Date();
+  const anchor = sortedMonths.length ? new Date(sortedMonths[sortedMonths.length - 1] + '-01') : now;
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
+    months.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+  }
+  charts.month = new Chart(document.getElementById('c-month'), {
+    type: 'line',
+    data: {
+      labels: months.map(m => Number(m.split('-')[1]) + '월'),
+      datasets: [{
+        data: months.map(m => k.byMonth[m] || 0),
+        borderColor: C.purple,
+        backgroundColor: C.purple + '22',
+        fill: true, tension: 0.35,
+        pointRadius: 4, pointBackgroundColor: C.purple, pointBorderColor: 'transparent',
+        borderWidth: 2,
+      }],
+    },
+    options: baseOpts(),
+  });
+}
+
+const STATUS_BADGE = { '예정':'b-pred', '진행중':'b-prog', '완료':'b-done', '보완':'b-supp', '재시험':'b-retry' };
+function statusBadge(s) { return s ? `<span class="badge ${STATUS_BADGE[s] || 'b-retry'}">${s}</span>` : ''; }
+function resultBadge(r) {
+  if (!r) return '<span class="dim">—</span>';
+  const cls = r === '합격' ? 'b-pass' : r === '불합격' ? 'b-fail' : 'b-prog';
+  return `<span class="badge ${cls}">${r}</span>`;
+}
+function fmtDate(s) {
+  const d = parseDate(s);
+  if (!d) return '<span class="dim">—</span>';
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+let currentFilter = 'ALL';
+function renderTable() {
+  const tbody = document.getElementById('tbody');
+  let filtered = RECORDS;
+  if (currentFilter === 'LATE') filtered = RECORDS.filter(isLate);
+  else if (currentFilter !== 'ALL') filtered = RECORDS.filter(r => (r['진행상태'] || '').trim() === currentFilter);
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">표시할 항목이 없습니다.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => {
+    const dur = durationDays(r);
+    const krw = krwAmount(r);
+    const lateMark = isLate(r) ? ' <span class="badge b-late" style="margin-left:4px;">지연</span>' : '';
+    return `<tr>
+      <td>${r['프로젝트명'] || ''}</td>
+      <td class="dim">${r['모델명'] || ''}</td>
+      <td>${r['인증/시험 종류'] || ''}</td>
+      <td class="dim">${r['인증기관'] || ''}</td>
+      <td>${statusBadge(r['진행상태'])}${lateMark}</td>
+      <td>${resultBadge(r['시험결과'])}</td>
+      <td class="dim">${fmtDate(r['완료예정일'])}</td>
+      <td class="num dim">${dur !== null ? dur : '—'}</td>
+      <td class="num">${krw > 0 ? fmtNum(Math.round(krw)) : '<span class="dim">—</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// 필터 칩
+document.getElementById('filters').addEventListener('click', (e) => {
+  if (!e.target.matches('.chip')) return;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  e.target.classList.add('active');
+  currentFilter = e.target.dataset.filter;
+  renderTable();
+});
+
+// 다크/라이트 모드 변경 시 차트 색 새로고침
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => renderCharts(computeKPI(RECORDS)));
+
+// 초기 렌더
+document.getElementById('updated').textContent = '데이터 기준 ' + LAST_UPDATED;
+const k = computeKPI(RECORDS);
+renderKPI(k);
+renderCharts(k);
+renderTable();
+</script>
 </body>
 </html>
